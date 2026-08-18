@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاتورتي - البشمهندس أحمد حسين</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2canvas library for downloading invoice as image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        burgundy: {
+                            800: '#5c0f1e',
+                            900: '#420a15',
+                            950: '#2b050c',
+                        },
+                        beige: {
+                            50: '#fdfbf7',
+                            100: '#f7f2e9',
+                            200: '#ede3d1',
+                            300: '#decbb0',
+                            400: '#cdb38f',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f7f2e9;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #ede3d1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cdb38f;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #5c0f1e;
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-invoice, #printable-invoice * {
+                visibility: visible;
+            }
+            #printable-invoice {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                box-shadow: none;
+                border: none;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-5 left-5 z-50 bg-burgundy-900 text-yellow-400 border border-yellow-500/30 px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-5 flex items-center space-x-2 space-x-reverse">
+        <i id="toast-icon" class="fas fa-check-circle text-lg"></i>
+        <span id="toast-message" class="font-bold text-sm">تمت العملية بنجاح</span>
+    </div>
+
+    <!-- Top Navigation Header -->
+    <header class="bg-burgundy-900 text-white shadow-xl sticky top-0 z-30 border-b-2 border-yellow-500">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            
+            <!-- Branding -->
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-yellow-500 text-burgundy-900 flex items-center justify-center text-2xl font-black shadow-lg shadow-yellow-500/20">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-wide text-yellow-400">فاتورتي</h1>
+                    <p class="text-xs text-beige-100 font-bold flex items-center gap-1.5">
+                        <i class="fas fa-user-tie text-yellow-400"></i>
+                        <span>البشمهندس أحمد حسين</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Live Date & Clock -->
+            <div class="flex items-center gap-4 text-xs md:text-sm bg-burgundy-950/80 px-4 py-2 rounded-xl border border-yellow-500/20 shadow-inner">
+                <div class="flex items-center gap-2 text-yellow-400 font-bold">
+                    <i class="far fa-calendar-alt"></i>
+                    <span id="live-date" class="text-beige-100">--/--/----</span>
+                </div>
+                <div class="h-4 w-px bg-burgundy-800"></div>
+                <div class="flex items-center gap-2 text-red-400 font-bold">
+                    <i class="far fa-clock"></i>
+                    <span id="live-time" class="text-beige-100">00:00:00</span>
+                </div>
+            </div>
+
+            <!-- Header Buttons -->
+            <div class="flex items-center gap-2">
+                <button onclick="resetInvoice()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-burgundy-950 rounded-xl text-xs font-extrabold transition flex items-center gap-2 shadow-md">
+                    <i class="fas fa-redo-alt"></i>
+                    <span>فاتورة جديدة</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Right Side: POS Cashier Panel (7 Cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-5">
+            
+            <!-- Cashier & Customer Info Box -->
+            <div class="bg-beige-50 p-5 rounded-2xl shadow-sm border border-beige-300">
+                <h2 class="text-base font-bold text-burgundy-900 mb-4 flex items-center justify-between border-b border-beige-200 pb-2.5">
+                    <span class="flex items-center gap-2">
+                        <i class="fas fa-id-card text-red-600"></i>
+                        <span>بيانات الكاشير والعميل</span>
+                    </span>
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1">الكاشير / المسؤول</label>
+                        <input type="text" id="cashier-name-input" value="البشمهندس أحمد حسين" oninput="updateInvoiceMeta()" class="w-full px-3 py-2.5 bg-white border border-beige-300 rounded-xl text-sm font-bold text-burgundy-900 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1">اسم العميل</label>
+                        <div class="relative">
+                            <i class="fas fa-user absolute right-3 top-1/2 -translate-y-1/2 text-burgundy-800/40 text-xs"></i>
+                            <input type="text" id="customer-name" value="عميل نقدي" oninput="updateInvoiceMeta()" placeholder="أدخل اسم العميل..." class="w-full pr-9 pl-3 py-2.5 bg-white border border-beige-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition text-sm font-bold text-slate-800">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1">رقم الفاتورة</label>
+                        <div class="relative">
+                            <i class="fas fa-hashtag absolute right-3 top-1/2 -translate-y-1/2 text-burgundy-800/40 text-xs"></i>
+                            <input type="text" id="invoice-id" value="INV-1001" oninput="updateInvoiceMeta()" class="w-full pr-9 pl-3 py-2.5 bg-white border border-beige-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition text-sm font-black text-red-600">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Item Form -->
+            <div class="bg-beige-50 p-5 rounded-2xl shadow-sm border border-beige-300">
+                <h2 class="text-base font-bold text-burgundy-900 mb-4 flex items-center justify-between border-b border-beige-200 pb-2.5">
+                    <span class="flex items-center gap-2">
+                        <i class="fas fa-cart-plus text-red-600"></i>
+                        <span>إضافة صنف / منتج جديد</span>
+                    </span>
+                </h2>
+                <form id="add-item-form" onsubmit="handleAddItem(event)" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+                    <div class="md:col-span-5">
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1">اسم الصنف</label>
+                        <input type="text" id="item-name" placeholder="اكتب اسم الصنف هنا..." required class="w-full px-3 py-2.5 bg-white border border-beige-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm font-semibold">
+                    </div>
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1">السعر (ج.م)</label>
+                        <input type="number" id="item-price" min="0" step="0.5" placeholder="0.00" required class="w-full px-3 py-2.5 bg-white border border-beige-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm font-extrabold text-burgundy-900">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1">الكمية</label>
+                        <input type="number" id="item-qty" min="1" value="1" required class="w-full px-3 py-2.5 bg-white border border-beige-300 rounded-xl focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-sm font-black text-center text-slate-800">
+                    </div>
+                    <div class="md:col-span-2">
+                        <button type="submit" class="w-full py-2.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-extrabold rounded-xl shadow-md shadow-red-600/20 transition flex items-center justify-center gap-1.5 text-sm">
+                            <i class="fas fa-plus"></i>
+                            <span>إضافة</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Items List Table -->
+            <div class="bg-beige-50 p-5 rounded-2xl shadow-sm border border-beige-300 flex-grow flex flex-col">
+                <h2 class="text-base font-bold text-burgundy-900 mb-3 flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <i class="fas fa-list-ul text-red-600"></i>
+                        <span>قائمة الأصناف المضافة</span>
+                    </span>
+                    <span id="items-count-badge" class="bg-burgundy-900 text-yellow-400 px-3 py-0.5 rounded-full text-xs font-black">0 أصناف</span>
+                </h2>
+
+                <div class="overflow-x-auto flex-grow rounded-xl border border-beige-300 bg-white">
+                    <table class="w-full text-sm text-right">
+                        <thead class="bg-burgundy-900 text-yellow-400 font-extrabold border-b border-burgundy-950">
+                            <tr>
+                                <th class="p-3">الصنف</th>
+                                <th class="p-3 text-center">السعر</th>
+                                <th class="p-3 text-center">الكمية</th>
+                                <th class="p-3 text-center">الإجمالي</th>
+                                <th class="p-3 text-center">حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-table-body" class="divide-y divide-beige-200 font-medium">
+                            <!-- Dynamic Content -->
+                        </tbody>
+                    </table>
+                    <div id="empty-cart-msg" class="py-12 text-center text-burgundy-900/40">
+                        <i class="fas fa-shopping-bag text-4xl mb-2 block opacity-30"></i>
+                        <p class="text-sm font-bold">لم يتم إضافة أي أصناف في الفاتورة بعد</p>
+                    </div>
+                </div>
+
+                <!-- Discount & Tax Controls -->
+                <div class="mt-4 pt-4 border-t border-beige-300 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1.5">الخصم على الفاتورة</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="discount-input" min="0" value="0" step="0.5" oninput="updateCalculations()" class="w-full px-3 py-2 bg-white border border-beige-300 rounded-xl focus:ring-2 focus:ring-yellow-500 text-sm font-bold">
+                            <select id="discount-type" onchange="updateCalculations()" class="px-3 py-2 bg-beige-200 border border-beige-300 rounded-xl text-xs font-bold text-burgundy-900">
+                                <option value="fixed">مبلغ (ج.م)</option>
+                                <option value="percent">نسبة (%)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold text-burgundy-900 mb-1.5">الضريبة (%)</label>
+                        <input type="number" id="tax-input" min="0" max="100" value="0" step="1" oninput="updateCalculations()" class="w-full px-3 py-2 bg-white border border-beige-300 rounded-xl focus:ring-2 focus:ring-yellow-500 text-sm font-bold">
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Left Side: Live Invoice Preview & Download (5 Cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-4">
+            
+            <!-- Toolbar -->
+            <div class="bg-burgundy-900 text-white p-3.5 rounded-2xl shadow-lg flex items-center justify-between gap-2 border border-yellow-500/30">
+                <span class="text-xs font-bold text-yellow-400 flex items-center gap-1.5">
+                    <i class="fas fa-eye"></i> معاينة الفاتورة
+                </span>
+                <div class="flex items-center gap-2">
+                    <button onclick="downloadInvoiceImage()" class="px-4 py-2 bg-yellow-500 hover:bg-yellow-400 active:bg-yellow-600 text-burgundy-950 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-md shadow-yellow-500/20">
+                        <i class="fas fa-download"></i>
+                        <span>تنزيل صورة (PNG)</span>
+                    </button>
+                    <button onclick="printInvoice()" class="px-3 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-extrabold transition flex items-center gap-1.5">
+                        <i class="fas fa-print"></i>
+                        <span>طباعة</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Receipt Paper Element -->
+            <div class="bg-beige-200/80 p-3 rounded-2xl flex justify-center border border-beige-300">
+                <div id="printable-invoice" class="bg-beige-50 w-full max-w-[420px] p-6 rounded-2xl shadow-2xl text-slate-800 border-2 border-burgundy-900 flex flex-col justify-between relative">
+                    
+                    <div>
+                        <!-- Header with "فاتورتي" -->
+                        <div class="text-center border-b-2 border-burgundy-900 pb-4 mb-4">
+                            <h1 class="text-3xl font-black text-burgundy-900 tracking-tight uppercase mb-1">فاتورتي</h1>
+                            <p id="preview-cashier-header" class="text-sm font-black text-red-600">البشمهندس أحمد حسين</p>
+                            <div class="mt-2 inline-block px-3 py-0.5 bg-burgundy-900 text-yellow-400 text-[10px] font-black rounded-full">
+                                فاتورة مبيعات
+                            </div>
+                        </div>
+
+                        <!-- Meta Info -->
+                        <div class="text-xs space-y-1.5 mb-4 bg-white p-3 rounded-xl border border-beige-300">
+                            <div class="flex justify-between">
+                                <span class="text-burgundy-900/60 font-bold">اسم العميل:</span>
+                                <span id="preview-customer" class="font-extrabold text-burgundy-900">عميل نقدي</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-burgundy-900/60 font-bold">الكاشير / المسؤول:</span>
+                                <span id="preview-cashier-meta" class="font-extrabold text-red-600">البشمهندس أحمد حسين</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-burgundy-900/60 font-bold">رقم الفاتورة:</span>
+                                <span id="preview-id" class="font-black text-burgundy-900">INV-1001</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-burgundy-900/60 font-bold">التاريخ والوقت:</span>
+                                <span id="preview-datetime" class="font-bold text-slate-700">--/--/---- 00:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Items Table -->
+                        <table class="w-full text-xs text-right mb-4">
+                            <thead>
+                                <tr class="border-b-2 border-burgundy-900 text-burgundy-900 font-black">
+                                    <th class="py-2">الصنف</th>
+                                    <th class="py-2 text-center">الكمية</th>
+                                    <th class="py-2 text-center">السعر</th>
+                                    <th class="py-2 text-left">الإجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-items-body" class="divide-y divide-beige-200">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totals -->
+                    <div class="border-t-2 border-dashed border-burgundy-900 pt-3 mt-2">
+                        <div class="space-y-1.5 text-xs">
+                            <div class="flex justify-between text-burgundy-900/80 font-bold">
+                                <span>المجموع الفرعي:</span>
+                                <span id="preview-subtotal" class="font-extrabold">0.00 ج.م</span>
+                            </div>
+                            <div id="preview-discount-row" class="flex justify-between text-red-600 font-bold hidden">
+                                <span>الخصم:</span>
+                                <span id="preview-discount" class="font-extrabold">-0.00 ج.م</span>
+                            </div>
+                            <div id="preview-tax-row" class="flex justify-between text-burgundy-900/80 font-bold hidden">
+                                <span>الضريبة:</span>
+                                <span id="preview-tax" class="font-extrabold">+0.00 ج.م</span>
+                            </div>
+                            <div class="flex justify-between text-base font-black text-burgundy-900 border-t-2 border-burgundy-900 pt-2 mt-2 bg-yellow-500/20 p-2 rounded-xl">
+                                <span>الإجمالي النهائي:</span>
+                                <span id="preview-total" class="text-red-600">0.00 ج.م</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-burgundy-950 text-beige-200 text-xs py-4 text-center border-t-2 border-yellow-500">
+        <p class="font-bold">نظام فاتورتي &copy; 2026 - البشمهندس أحمد حسين</p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        let cart = [];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateClock();
+            setInterval(updateClock, 1000);
+            updateInvoiceMeta();
+        });
+
+        function updateClock() {
+            const now = new Date();
+            
+            const dateStr = now.toLocaleDateString('ar-EG', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            
+            const timeStr = now.toLocaleTimeString('ar-EG', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+
+            document.getElementById('live-date').innerText = dateStr;
+            document.getElementById('live-time').innerText = timeStr;
+            document.getElementById('preview-datetime').innerText = `${dateStr} ${timeStr}`;
+        }
+
+        function handleAddItem(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('item-name');
+            const priceInput = document.getElementById('item-price');
+            const qtyInput = document.getElementById('item-qty');
+
+            const name = nameInput.value.trim();
+            const price = parseFloat(priceInput.value);
+            const qty = parseInt(qtyInput.value);
+
+            if (!name || isNaN(price) || isNaN(qty) || price < 0 || qty <= 0) {
+                showToast('يرجى إدخال بيانات صالحة للصنف', 'error');
+                return;
+            }
+
+            addItemToCart(name, price, qty);
+
+            nameInput.value = '';
+            priceInput.value = '';
+            qtyInput.value = '1';
+            nameInput.focus();
+
+            showToast('تمت إضافة الصنف بنجاح!');
+        }
+
+        function addItemToCart(name, price, qty) {
+            const existingIndex = cart.findIndex(item => item.name.toLowerCase() === name.toLowerCase());
+
+            if (existingIndex > -1) {
+                cart[existingIndex].qty += qty;
+            } else {
+                cart.push({
+                    id: Date.now(),
+                    name: name,
+                    price: price,
+                    qty: qty
+                });
+            }
+
+            renderCart();
+        }
+
+        function removeItem(id) {
+            cart = cart.filter(item => item.id !== id);
+            renderCart();
+            showToast('تم حذف الصنف', 'info');
+        }
+
+        function updateQty(id, newQty) {
+            const qty = parseInt(newQty);
+            if (isNaN(qty) || qty <= 0) return;
+
+            const item = cart.find(item => item.id === id);
+            if (item) {
+                item.qty = qty;
+                renderCart();
+            }
+        }
+
+        function updateInvoiceMeta() {
+            const cashierName = document.getElementById('cashier-name-input').value.trim() || 'البشمهندس أحمد حسين';
+            const customerName = document.getElementById('customer-name').value.trim() || 'عميل نقدي';
+            const invoiceId = document.getElementById('invoice-id').value.trim() || 'INV-1001';
+
+            document.getElementById('preview-customer').innerText = customerName;
+            document.getElementById('preview-id').innerText = invoiceId;
+            document.getElementById('preview-cashier-header').innerText = cashierName;
+            document.getElementById('preview-cashier-meta').innerText = cashierName;
+        }
+
+        function renderCart() {
+            const tbody = document.getElementById('cart-table-body');
+            const previewTbody = document.getElementById('preview-items-body');
+            const emptyMsg = document.getElementById('empty-cart-msg');
+            const countBadge = document.getElementById('items-count-badge');
+
+            tbody.innerHTML = '';
+            previewTbody.innerHTML = '';
+
+            if (cart.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                countBadge.innerText = '0 أصناف';
+            } else {
+                emptyMsg.classList.add('hidden');
+                countBadge.innerText = `${cart.length} أصناف`;
+            }
+
+            cart.forEach((item) => {
+                const itemTotal = item.price * item.qty;
+
+                // Cashier Table
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-beige-100 border-b border-beige-200 transition';
+                tr.innerHTML = `
+                    <td class="p-3 font-extrabold text-burgundy-900">${escapeHtml(item.name)}</td>
+                    <td class="p-3 text-center font-bold text-slate-700">${item.price.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <input type="number" min="1" value="${item.qty}" onchange="updateQty(${item.id}, this.value)" class="w-14 px-1 py-0.5 border border-beige-300 rounded text-center text-xs font-black text-burgundy-900">
+                    </td>
+                    <td class="p-3 text-center font-black text-red-600">${itemTotal.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="removeItem(${item.id})" class="text-red-600 hover:text-red-800 p-1 rounded transition">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Printable Receipt Table
+                const previewTr = document.createElement('tr');
+                previewTr.className = 'border-b border-beige-200';
+                previewTr.innerHTML = `
+                    <td class="py-2 font-bold text-burgundy-900">${escapeHtml(item.name)}</td>
+                    <td class="py-2 text-center text-slate-700 font-bold">${item.qty}</td>
+                    <td class="py-2 text-center text-slate-700 font-bold">${item.price.toFixed(2)}</td>
+                    <td class="py-2 text-left font-black text-red-600">${itemTotal.toFixed(2)}</td>
+                `;
+                previewTbody.appendChild(previewTr);
+            });
+
+            updateCalculations();
+        }
+
+        function updateCalculations() {
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            
+            const discountInput = parseFloat(document.getElementById('discount-input').value) || 0;
+            const discountType = document.getElementById('discount-type').value;
+            const taxInput = parseFloat(document.getElementById('tax-input').value) || 0;
+
+            let discountAmount = 0;
+            if (discountType === 'percent') {
+                discountAmount = (subtotal * discountInput) / 100;
+            } else {
+                discountAmount = discountInput;
+            }
+
+            if (discountAmount > subtotal) discountAmount = subtotal;
+
+            const taxableTotal = subtotal - discountAmount;
+            const taxAmount = (taxableTotal * taxInput) / 100;
+            const finalTotal = taxableTotal + taxAmount;
+
+            document.getElementById('preview-subtotal').innerText = `${subtotal.toFixed(2)} ج.م`;
+            
+            const discountRow = document.getElementById('preview-discount-row');
+            if (discountAmount > 0) {
+                discountRow.classList.remove('hidden');
+                document.getElementById('preview-discount').innerText = `-${discountAmount.toFixed(2)} ج.م`;
+            } else {
+                discountRow.classList.add('hidden');
+            }
+
+            const taxRow = document.getElementById('preview-tax-row');
+            if (taxAmount > 0) {
+                taxRow.classList.remove('hidden');
+                document.getElementById('preview-tax').innerText = `+${taxAmount.toFixed(2)} ج.م`;
+            } else {
+                taxRow.classList.add('hidden');
+            }
+
+            document.getElementById('preview-total').innerText = `${finalTotal.toFixed(2)} ج.م`;
+        }
+
+        function downloadInvoiceImage() {
+            if (cart.length === 0) {
+                showToast('الفاتورة فارغة! أضف أصناف أولاً', 'error');
+                return;
+            }
+
+            const invoiceElement = document.getElementById('printable-invoice');
+            showToast('جاري تحضير وتنزيل الصورة...', 'info');
+
+            html2canvas(invoiceElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#fdfbf7'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                const customerName = document.getElementById('customer-name').value.trim() || 'عميل';
+                const invoiceId = document.getElementById('invoice-id').value.trim() || 'INV';
+                
+                link.download = `فاتورتي_${invoiceId}_${customerName}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                showToast('تم تنزيل الفاتورة كصورة بنجاح!');
+            }).catch(err => {
+                console.error(err);
+                showToast('حدث خطأ أثناء تنزيل الصورة', 'error');
+            });
+        }
+
+        function printInvoice() {
+            if (cart.length === 0) {
+                showToast('الفاتورة فارغة! أضف أصناف أولاً', 'error');
+                return;
+            }
+            window.print();
+        }
+
+        function resetInvoice() {
+            cart = [];
+            document.getElementById('customer-name').value = 'عميل نقدي';
+            
+            const currentIdInput = document.getElementById('invoice-id');
+            const match = currentIdInput.value.match(/\d+/);
+            if (match) {
+                const nextNum = parseInt(match[0]) + 1;
+                currentIdInput.value = `INV-${nextNum}`;
+            }
+
+            document.getElementById('discount-input').value = '0';
+            document.getElementById('tax-input').value = '0';
+
+            updateInvoiceMeta();
+            renderCart();
+            showToast('تم فتح فاتورة جديدة بنجاح!');
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMessage.innerText = message;
+
+            if (type === 'error') {
+                toastIcon.className = 'fas fa-exclamation-circle text-lg text-red-400';
+            } else if (type === 'info') {
+                toastIcon.className = 'fas fa-info-circle text-lg text-yellow-400';
+            } else {
+                toastIcon.className = 'fas fa-check-circle text-lg text-emerald-400';
+            }
+
+            toast.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-5');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none', '-translate-y-5');
+            }, 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.innerText = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
+
